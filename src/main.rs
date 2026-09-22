@@ -42,10 +42,15 @@ struct AppState {
     height: f64,
 
     status: bool,
+    is_pause: bool,
 }
 
 impl AppState {
     fn update(&mut self) {
+        if self.is_pause {
+            return;
+        }
+
         // Remove last value, add new head.
         let head = &self.snake[0];
         let mut new_head = Point {
@@ -87,6 +92,10 @@ impl AppState {
     }
 
     fn change_dir(&mut self, new_dir: Facing) {
+        if self.is_pause {
+            return;
+        }
+
         match (&self.dir, &new_dir) {
             (Facing::Down, Facing::Up) | (Facing::Up, Facing::Down) => {}
             (Facing::Right, Facing::Left) | (Facing::Left, Facing::Right) => {}
@@ -138,6 +147,7 @@ fn main() -> Result<()> {
         height: 40.0,
 
         status: false,
+        is_pause: false,
     };
 
     let terminal = ratatui::init();
@@ -188,6 +198,10 @@ fn run(mut terminal: DefaultTerminal, app_state: &mut AppState) -> Result<()> {
                         app_state.change_dir(Facing::Right);
                     }
 
+                    event::KeyCode::Enter => {
+                        app_state.is_pause ^= true;
+                    }
+
                     _ => {}
                 }
             }
@@ -211,7 +225,7 @@ fn render(frame: &mut Frame, app_state: &mut AppState) {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Fill(1),
-            Constraint::Length(23),
+            Constraint::Length(41),
             Constraint::Fill(1),
         ])
         .split(frame.area());
@@ -220,13 +234,24 @@ fn render(frame: &mut Frame, app_state: &mut AppState) {
         .direction(Direction::Horizontal)
         .constraints([
             Constraint::Fill(1),
-            Constraint::Length(63),
+            Constraint::Length(90),
             Constraint::Length(15),
             Constraint::Fill(1),
         ])
         .split(main_area[1]);
 
-    let center_box = Block::bordered().fg(Color::Gray).border_type(Thick);
+    let center_box = Block::bordered()
+        .fg(Color::Gray)
+        .border_type(Thick)
+        .title_top(
+            Line::from(if (app_state.is_pause) {
+                "[ PAUSED ]"
+            } else {
+                ""
+            })
+            .centered()
+            .bold(),
+        );
 
     let info_area = Layout::default()
         .direction(Direction::Vertical)
@@ -257,23 +282,31 @@ fn render(frame: &mut Frame, app_state: &mut AppState) {
         .x_bounds([0.0, app_state.width])
         .y_bounds([0.0, app_state.height])
         .paint(|ctx| {
+            ctx.draw(&Rectangle {
+                x: app_state.food.x,
+                y: app_state.food.y,
+                width: 1.0,
+                height: 1.0,
+                color: if (app_state.is_pause) {
+                    Color::DarkGray
+                } else {
+                    Color::Red
+                },
+            });
+
             for piece in &app_state.snake {
                 ctx.draw(&Rectangle {
                     x: piece.x,
                     y: piece.y,
                     width: 1.0,
                     height: 1.0,
-                    color: Color::Green,
+                    color: if (app_state.is_pause) {
+                        Color::DarkGray
+                    } else {
+                        Color::Green
+                    },
                 })
             }
-
-            ctx.draw(&Rectangle {
-                x: app_state.food.x,
-                y: app_state.food.y,
-                width: 1.0,
-                height: 1.0,
-                color: Color::Red,
-            })
         });
 
     frame.render_widget(game, middle_area[1]);
