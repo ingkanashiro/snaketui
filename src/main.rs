@@ -1,4 +1,5 @@
 use color_eyre::eyre::Result;
+use colored::Colorize;
 use ratatui::{
     DefaultTerminal, Frame,
     crossterm::event::{self, Event},
@@ -39,6 +40,8 @@ struct AppState {
 
     width: f64,
     height: f64,
+
+    status: bool,
 }
 
 impl AppState {
@@ -109,12 +112,11 @@ impl AppState {
     }
 
     fn end_game(&mut self) {
-        todo!();
+        self.status = true;
     }
 }
 
 fn main() -> Result<()> {
-    println!("Hello, world!");
     color_eyre::install()?;
 
     let state = &mut AppState {
@@ -134,12 +136,21 @@ fn main() -> Result<()> {
 
         width: 40.0,
         height: 40.0,
+
+        status: false,
     };
 
     let terminal = ratatui::init();
     let result = run(terminal, state);
 
     ratatui::restore();
+
+    println!(
+        "Game finished with {} points! Play again by running {}.",
+        Colorize::bold(format!("{}", state.score).as_str()).yellow(),
+        Colorize::bold("snake").blue()
+    );
+
     result
 }
 
@@ -185,6 +196,10 @@ fn run(mut terminal: DefaultTerminal, app_state: &mut AppState) -> Result<()> {
         if last_tick.elapsed() >= tick_rate {
             app_state.update();
             last_tick = Instant::now();
+        }
+
+        if app_state.status {
+            break;
         }
     }
 
