@@ -146,8 +146,8 @@ fn main() -> Result<()> {
     ratatui::restore();
 
     println!(
-        "Game finished with {} points! Play again by running {}.",
-        Colorize::bold(format!("{}", state.score).as_str()).yellow(),
+        "Game finished with {}! Play again by running {}.",
+        Colorize::bold(format!("{} points", state.score).as_str()).yellow(),
         Colorize::bold("snake").blue()
     );
 
