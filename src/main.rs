@@ -142,6 +142,11 @@ impl AppState {
 fn main() -> Result<()> {
     color_eyre::install()?;
 
+    println!(
+        "Running {} on terminal...",
+        Colorize::bold("snake v1.1").blue()
+    );
+
     let state = &mut AppState {
         snake: vec![
             Point {
