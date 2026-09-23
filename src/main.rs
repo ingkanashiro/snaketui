@@ -26,11 +26,14 @@ enum Facing {
 struct Point {
     x: f64,
     y: f64,
+
+    seg: u8,
 }
 
 struct AppState {
     snake: Vec<Point>,
     dir: Facing,
+    newdir: Facing,
 
     food: Point,
     score: u8,
@@ -43,6 +46,8 @@ struct AppState {
 
     status: bool,
     is_pause: bool,
+
+    is_python: bool,
 }
 
 impl AppState {
@@ -51,11 +56,20 @@ impl AppState {
             return;
         }
 
+        match self.newdir {
+            Facing::Up => self.dir = Facing::Up,
+            Facing::Down => self.dir = Facing::Down,
+            Facing::Left => self.dir = Facing::Left,
+            Facing::Right => self.dir = Facing::Right,
+        }
+
         // Remove last value, add new head.
         let head = &self.snake[0];
         let mut new_head = Point {
             x: head.x,
             y: head.y,
+
+            seg: ((self.score / 3) as u8) % 2,
         };
 
         match self.dir {
@@ -100,7 +114,7 @@ impl AppState {
             (Facing::Down, Facing::Up) | (Facing::Up, Facing::Down) => {}
             (Facing::Right, Facing::Left) | (Facing::Left, Facing::Right) => {}
             _ => {
-                self.dir = new_dir;
+                self.newdir = new_dir;
             }
         }
     }
@@ -130,24 +144,55 @@ fn main() -> Result<()> {
 
     let state = &mut AppState {
         snake: vec![
-            Point { x: 9.0, y: 21.0 }, // <- HEAD
-            Point { x: 8.0, y: 21.0 },
-            Point { x: 7.0, y: 21.0 },
-            Point { x: 6.0, y: 21.0 },
-            Point { x: 5.0, y: 21.0 }, // <- TAIL
+            Point {
+                x: 15.0,
+                y: 21.0,
+                seg: 0,
+            }, // <- HEAD
+            Point {
+                x: 14.0,
+                y: 21.0,
+                seg: 0,
+            },
+            Point {
+                x: 13.0,
+                y: 21.0,
+                seg: 0,
+            },
+            Point {
+                x: 12.0,
+                y: 21.0,
+                seg: 1,
+            },
+            Point {
+                x: 11.0,
+                y: 21.0,
+                seg: 1,
+            },
+            Point {
+                x: 10.0,
+                y: 21.0,
+                seg: 1,
+            }, // <- TAIL
         ],
         dir: Facing::Right,
-        food: Point { x: 21.0, y: 21.0 },
+        newdir: Facing::Right,
+        food: Point {
+            x: 21.0,
+            y: 21.0,
+            seg: 2,
+        },
         score: 0,
         clock: 0,
 
-        freq: 180,
+        freq: 120,
 
         width: 40.0,
         height: 40.0,
 
         status: false,
         is_pause: false,
+        is_python: false,
     };
 
     let terminal = ratatui::init();
@@ -202,6 +247,10 @@ fn run(mut terminal: DefaultTerminal, app_state: &mut AppState) -> Result<()> {
                         app_state.is_pause ^= true;
                     }
 
+                    event::KeyCode::Char('p') => {
+                        app_state.is_python ^= true;
+                    }
+
                     _ => {}
                 }
             }
@@ -225,7 +274,7 @@ fn render(frame: &mut Frame, app_state: &mut AppState) {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Fill(1),
-            Constraint::Length(41),
+            Constraint::Length(33),
             Constraint::Fill(1),
         ])
         .split(frame.area());
@@ -234,7 +283,7 @@ fn render(frame: &mut Frame, app_state: &mut AppState) {
         .direction(Direction::Horizontal)
         .constraints([
             Constraint::Fill(1),
-            Constraint::Length(90),
+            Constraint::Length(69),
             Constraint::Length(15),
             Constraint::Fill(1),
         ])
@@ -287,7 +336,7 @@ fn render(frame: &mut Frame, app_state: &mut AppState) {
                 y: app_state.food.y,
                 width: 1.0,
                 height: 1.0,
-                color: if (app_state.is_pause) {
+                color: if app_state.is_pause {
                     Color::DarkGray
                 } else {
                     Color::Red
@@ -300,8 +349,14 @@ fn render(frame: &mut Frame, app_state: &mut AppState) {
                     y: piece.y,
                     width: 1.0,
                     height: 1.0,
-                    color: if (app_state.is_pause) {
+                    color: if app_state.is_pause {
                         Color::DarkGray
+                    } else if app_state.is_python {
+                        if piece.seg == 0 {
+                            Color::Blue
+                        } else {
+                            Color::LightYellow
+                        }
                     } else {
                         Color::Green
                     },
